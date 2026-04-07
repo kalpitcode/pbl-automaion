@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  role          String   @default("STUDENT")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Group membership
+  group_membership GroupMember?
+
+  // As a Supervisor
+  supervised_groups Group[] @relation("GroupSupervisor")
+  supervisor_requests SupervisorRequest[]
+
+  // Submissions authored by this user
+  submissions   GroupWeek[] @relation("Submissions")
+
+  @@index([email], name: "idx_users_email")
+  @@map("users")
+}
+
+model Group {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  topic         String?
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  
+  supervisor_id String?
+  supervisor    User?    @relation("GroupSupervisor", fields: [supervisor_id], references: [id])
+  
+  members       GroupMember[]
+  week_statuses GroupWeek[]
+  supervisor_request SupervisorRequest?
+
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  @@map("groups")
+}
+
+model Week {
+  id            String   @id @default(uuid())
+  week_number   Int      @unique
+  name          String   
+  phase_title   String?  
+  deadline      DateTime?
+
+  group_statuses GroupWeek[]
+
+  @@map("weeks")
+}
+
+model GroupWeek {
+  id                   String    @id @default(uuid())
+  group_id             String
+  week_id              String
+  status               String    @default("PENDING")  // PENDING | APPROVED | REJECTED
+
+  // Student submission
+  submission_comments  String?
+  submitted_at         DateTime?
+  submitted_by_id      String?
+  submitted_by         User?     @relation("Submissions", fields: [submitted_by_id], references: [id])
+
+  // Supervisor review
+  supervisor_feedback  String?
+  reviewed_at          DateTime?
+
+  group         Group    @relation(fields: [group_id], references: [id])
+  week          Week     @relation(fields: [week_id], references: [id])
+
+  updated_at    DateTime @updatedAt
+  
+  @@unique([group_id, week_id])
+  @@map("group_weeks")
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  user_id   String   @unique
+  group_id  String
+  role      String   @default("MEMBER") // LEADER | MEMBER
+
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [group_id], references: [id], onDelete: Cascade)
+
+  @@map("group_members")
+}
+
+model SupervisorRequest {
+  id            String   @id @default(uuid())
+  group_id      String   @unique
+  supervisor_id String
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  group         Group    @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  supervisor    User     @relation(fields: [supervisor_id], references: [id], onDelete: Cascade)
+
+  @@map("supervisor_requests")
+}
