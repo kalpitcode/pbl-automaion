@@ -3,6 +3,8 @@
 :root {
   --background: #FAF6F0;
   --foreground: #1A1A1A;
+  --font-sans: "Aptos", "Segoe UI", "Trebuchet MS", sans-serif;
+  --font-serif: "Palatino Linotype", "Book Antiqua", Georgia, serif;
   
   --primary: #784E35;
   --primary-hover: #5A3A28;
@@ -30,9 +32,6 @@
   --color-draft-hover: var(--accent-draft-hover);
   --color-success-bg: var(--green-bg);
   --color-success-text: var(--green-text);
-  
-  --font-sans: var(--font-inter);
-  --font-serif: var(--font-playfair);
 }
 
 body {

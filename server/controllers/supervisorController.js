@@ -1,4 +1,6 @@
 const { prisma } = require('../models/userModel');
+const { generateWeeklyReportPdf } = require('../utils/reportPdf');
+const { readSubmissionMeta } = require('../utils/submissionStorage');
 
 // ─── Helper: verify supervisor owns the group ────────────────────────────────
 async function assertSupervisorOwnsGroup(supervisorId, groupId) {
@@ -7,6 +9,31 @@ async function assertSupervisorOwnsGroup(supervisorId, groupId) {
     });
     if (!group) throw { status: 403, message: 'Access denied: this group is not assigned to you.' };
     return group;
+}
+
+function formatWeekInfo(week, submittedAt) {
+    const dateLabel = submittedAt
+        ? new Date(submittedAt).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+          })
+        : 'Date not available';
+
+    return `${week.name} - ${dateLabel}`;
+}
+
+function sanitizeStudent(student = {}) {
+    return {
+        name: typeof student.name === 'string' ? student.name.trim() : '',
+        reg: typeof student.reg === 'string' ? student.reg.trim() : '',
+        mobile: typeof student.mobile === 'string' ? student.mobile.trim() : '',
+        email: typeof student.email === 'string' ? student.email.trim() : '',
+    };
+}
+
+function sanitizeReportValue(value, fallback = '') {
+    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
 // ─── GET /api/supervisor/groups ──────────────────────────────────────────────
@@ -69,11 +96,15 @@ const getGroupDetail = async (req, res) => {
 
         const weeks = allWeeks.map(week => {
             const gw = groupWeeks.find(g => g.week_id === week.id);
+            const fileMeta = readSubmissionMeta(groupId, week.id);
             return {
                 ...week,
                 group_week_id: gw?.id ?? null,
                 status: gw?.status ?? 'PENDING',
                 submission_comments: gw?.submission_comments ?? null,
+                submitted_file_name: fileMeta?.originalName ?? null,
+                submitted_file_type: fileMeta?.mimeType ?? null,
+                submitted_file_size: fileMeta?.size ?? null,
                 submitted_at: gw?.submitted_at ?? null,
                 submitted_by: gw?.submitted_by ?? null,
                 supervisor_feedback: gw?.supervisor_feedback ?? null,
@@ -104,6 +135,7 @@ const getWeekDetail = async (req, res) => {
             where: { group_id_week_id: { group_id: groupId, week_id: weekId } },
             include: { submitted_by: { select: { id: true, name: true, email: true } } },
         });
+        const fileMeta = readSubmissionMeta(groupId, weekId);
 
         res.status(200).json({
             week,
@@ -112,6 +144,9 @@ const getWeekDetail = async (req, res) => {
                       id: gw.id,
                       status: gw.status,
                       submission_comments: gw.submission_comments,
+                      submitted_file_name: fileMeta?.originalName ?? null,
+                      submitted_file_type: fileMeta?.mimeType ?? null,
+                      submitted_file_size: fileMeta?.size ?? null,
                       submitted_at: gw.submitted_at,
                       submitted_by: gw.submitted_by,
                       supervisor_feedback: gw.supervisor_feedback,
@@ -188,6 +223,111 @@ const rejectWeek = async (req, res) => {
     } catch (err) {
         console.error('rejectWeek error:', err);
         res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+    }
+};
+
+// GET /api/supervisor/groups/:groupId/weeks/:weekId/file
+const downloadWeekSubmission = async (req, res) => {
+    try {
+        const supervisorId = req.user.userId;
+        const { groupId, weekId } = req.params;
+
+        await assertSupervisorOwnsGroup(supervisorId, groupId);
+
+        const submission = await prisma.groupWeek.findUnique({
+            where: { group_id_week_id: { group_id: groupId, week_id: weekId } },
+        });
+
+        const fileMeta = readSubmissionMeta(groupId, weekId);
+
+        if (!submission || !fileMeta?.storedPath || !fileMeta.originalName) {
+            return res.status(404).json({ error: 'No uploaded file was found for this week.' });
+        }
+
+        res.download(fileMeta.storedPath, fileMeta.originalName);
+    } catch (err) {
+        console.error('downloadWeekSubmission error:', err);
+        res.status(err.status || 500).json({ error: err.message || 'Failed to download file.' });
+    }
+};
+
+// POST /api/supervisor/groups/:groupId/weeks/:weekId/report
+const generateWeekReport = async (req, res) => {
+    try {
+        const supervisorId = req.user.userId;
+        const { groupId, weekId } = req.params;
+
+        await assertSupervisorOwnsGroup(supervisorId, groupId);
+
+        const group = await prisma.group.findUnique({
+            where: { id: groupId },
+            include: {
+                supervisor: { select: { id: true, name: true, email: true } },
+                members: {
+                    include: {
+                        user: { select: { id: true, name: true, email: true } },
+                    },
+                },
+            },
+        });
+
+        const week = await prisma.week.findUnique({ where: { id: weekId } });
+        const submission = await prisma.groupWeek.findUnique({
+            where: { group_id_week_id: { group_id: groupId, week_id: weekId } },
+        });
+
+        if (!group || !week) {
+            return res.status(404).json({ error: 'Group or week not found.' });
+        }
+
+        const providedStudents = Array.isArray(req.body?.students)
+            ? req.body.students.map(sanitizeStudent).filter((student) => student.name)
+            : [];
+
+        const fallbackStudents = group.members.map((member) => ({
+            name: member.user.name,
+            reg: '',
+            mobile: '',
+            email: member.user.email,
+        }));
+
+        const reportData = {
+            courseCode: sanitizeReportValue(req.body?.courseCode, 'AIM2270'),
+            semesterSection: sanitizeReportValue(req.body?.semesterSection, 'IV / B'),
+            facultySupervisor: sanitizeReportValue(
+                req.body?.facultySupervisor,
+                group.supervisor?.name || 'Supervisor'
+            ),
+            weekInfo: sanitizeReportValue(
+                req.body?.weekInfo,
+                formatWeekInfo(week, submission?.submitted_at)
+            ),
+            projectTitle: sanitizeReportValue(req.body?.projectTitle, group.topic || group.name),
+            programmingLanguage: sanitizeReportValue(req.body?.programmingLanguage, 'Not specified'),
+            projectStatus: sanitizeReportValue(req.body?.projectStatus, submission?.status || 'PENDING'),
+            weeklySummary: sanitizeReportValue(
+                req.body?.weeklySummary,
+                submission?.submission_comments || 'No weekly summary provided.'
+            ),
+            individualContribution: sanitizeReportValue(
+                req.body?.individualContribution,
+                'Contribution details not provided.'
+            ),
+            students: providedStudents.length > 0 ? providedStudents : fallbackStudents,
+        };
+
+        const pdfBuffer = await generateWeeklyReportPdf(reportData);
+        const fileName = `${group.name}_${week.name}_Weekly_Report.pdf`.replace(/\s+/g, '_');
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'Content-Length': pdfBuffer.length.toString(),
+        });
+        res.send(pdfBuffer);
+    } catch (err) {
+        console.error('generateWeekReport error:', err);
+        res.status(err.status || 500).json({ error: err.message || 'Failed to generate report.' });
     }
 };
 
@@ -294,6 +434,8 @@ module.exports = {
     getWeekDetail,
     approveWeek,
     rejectWeek,
+    downloadWeekSubmission,
+    generateWeekReport,
     getRequests,
     approveRequest,
     rejectRequest,

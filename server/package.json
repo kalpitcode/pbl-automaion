@@ -4,6 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "env": "node scripts/ensure-dev-env.js",
+    "prisma:generate": "npm run env && npx prisma generate",
+    "db:reset": "npm run env && node scripts/reset-dev-db.js",
+    "db:bootstrap": "npm run env && node scripts/bootstrap-db.js",
+    "db:push": "npm run env && npx prisma db push",
+    "seed": "npm run env && node seed.js",
+    "seed:supervisor": "npm run env && node seed_supervisor_mock.js",
+    "setup": "npm run prisma:generate && npm run db:reset && npm run db:bootstrap && npm run seed && npm run seed:supervisor",
+    "dev": "npm run env && node index.js",
+    "start": "npm run env && node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -19,6 +29,7 @@
     "express-rate-limit": "^8.3.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
     "zod": "^4.3.6"
   },

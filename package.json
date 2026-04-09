@@ -4,9 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:frontend": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "server:env": "npm --prefix server run env",
+    "server:setup": "npm --prefix server run setup",
+    "server:dev": "npm --prefix server run dev",
+    "server:start": "npm --prefix server run start"
   },
   "dependencies": {
     "lucide-react": "^1.7.0",

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PBL Weekly Progress Report</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      padding: 32px 16px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.3rem;
+      margin-bottom: 6px;
+      color: #1a1a2e;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 28px;
+    }
+
+    form {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 28px 32px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.09);
+    }
+
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b1a1a;
+      margin: 24px 0 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 4px;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+
+    .field { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    input[type="text"], input[type="email"], input[type="tel"], textarea, input[type="date"] {
+      width: 100%;
+      padding: 8px 11px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      background: #fafafa;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #8b1a1a;
+      background: #fff;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    .trio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .duo  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .student-block {
+      background: #f8f8f8;
+      border: 1px solid #e4e4e4;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .student-block h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    button[type="submit"] {
+      display: block;
+      width: 100%;
+      margin-top: 24px;
+      padding: 13px;
+      background: #8b1a1a;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: background 0.2s;
+    }
+    button[type="submit"]:hover { background: #6e1313; }
+    button[type="submit"]:disabled { background: #bbb; cursor: not-allowed; }
+
+    #status {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 0.88rem;
+      color: #555;
+      min-height: 20px;
+    }
+    #status.error { color: #c0392b; }
+    #status.success { color: #27ae60; }
+  </style>
+</head>
+<body>
+
+<h1>PBL Weekly Progress Report</h1>
+<p class="subtitle">Manipal University Jaipur — Department of AIML</p>
+
+<form id="reportForm">
+
+  <!-- ── SECTION 1: Course & Supervisor ── -->
+  <div class="section-title">Course & Supervisor</div>
+
+  <div class="duo">
+    <div class="field">
+      <label>Course Code</label>
+      <input type="text" name="courseCode" placeholder="e.g. AIM2270" required />
+    </div>
+    <div class="field">
+      <label>Semester / Section</label>
+      <input type="text" name="semesterSection" placeholder="e.g. IV / B" required />
+    </div>
+  </div>
+
+  <div class="duo">
+    <div class="field">
+      <label>Faculty Supervisor Name</label>
+      <input type="text" name="facultySupervisor" placeholder="e.g. Dr. Preeti Narooka" required />
+    </div>
+    <div class="field">
+      <label>Week (Date & Week No.)</label>
+      <input type="text" name="weekInfo" placeholder="e.g. Week III – 20 Jan 2025" required />
+    </div>
+  </div>
+
+  <div class="field">
+    <label>PBL Project Title</label>
+    <input type="text" name="projectTitle" placeholder="Project title" required />
+  </div>
+
+  <!-- ── SECTION 2: Students ── -->
+  <div class="section-title">Students (Group)</div>
+
+  <div id="studentsContainer">
+    <!-- Student blocks injected by JS -->
+  </div>
+
+  <!-- ── SECTION 3: Project Details ── -->
+  <div class="section-title">Project Details</div>
+
+  <div class="field">
+    <label>Programming Language / Stack (Front End, Back End, etc.)</label>
+    <input type="text" name="programmingLanguage" placeholder="e.g. React, Node.js, MongoDB" required />
+  </div>
+
+  <div class="field">
+    <label>Project Status (% of work completed)</label>
+    <input type="text" name="projectStatus" placeholder="e.g. 45%" required />
+  </div>
+
+  <div class="field">
+    <label>Weekly Project Progress Summary</label>
+    <textarea name="weeklySummary" placeholder="Describe what was accomplished this week…" required></textarea>
+  </div>
+
+  <div class="field">
+    <label>Individual Contribution of Each Student</label>
+    <textarea name="individualContribution" placeholder="Sia: … | Vareen: … | Utkarsh: …" style="min-height:100px;" required></textarea>
+  </div>
+
+  <button type="submit" id="submitBtn">Generate & Download PDF</button>
+  <div id="status"></div>
+
+</form>
+
+<script>
+  // Build 3 student input blocks
+  const container = document.getElementById('studentsContainer');
+  ['Student 1', 'Student 2', 'Student 3'].forEach((label, i) => {
+    container.innerHTML += `
+      <div class="student-block">
+        <h3>${label}</h3>
+        <div class="trio">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" name="studentName${i}" placeholder="Full name" ${i===0?'required':''} />
+          </div>
+          <div class="field">
+            <label>Reg. Number</label>
+            <input type="text" name="studentReg${i}" placeholder="23FE10CAI00XXX" />
+          </div>
+          <div class="field">
+            <label>Mobile</label>
+            <input type="tel" name="studentMobile${i}" placeholder="10-digit number" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Email ID</label>
+          <input type="email" name="studentEmail${i}" placeholder="student@example.com" />
+        </div>
+      </div>`;
+  });
+
+  document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn    = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+    btn.disabled = true;
+    status.className = '';
+    status.textContent = 'Generating PDF…';
+
+    const fd   = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+
+    // Build students array
+    data.students = [0, 1, 2].map(i => ({
+      name:   data[`studentName${i}`]   || '',
+      reg:    data[`studentReg${i}`]    || '',
+      mobile: data[`studentMobile${i}`] || '',
+      email:  data[`studentEmail${i}`]  || '',
+    })).filter(s => s.name);
+
+    // Clean up individual keys
+    [0,1,2].forEach(i => {
+      delete data[`studentName${i}`];
+      delete data[`studentReg${i}`];
+      delete data[`studentMobile${i}`];
+      delete data[`studentEmail${i}`];
+    });
+
+    try {
+      const res = await fetch('http://localhost:3000/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || 'Server error');
+      }
+
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'PBL_Weekly_Progress_Report.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      status.className   = 'success';
+      status.textContent = '✓ PDF downloaded successfully!';
+    } catch (err) {
+      status.className   = 'error';
+      status.textContent = '✗ Error: ' + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,32 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Download, FileText, History, Users } from 'lucide-react';
-import { approveWeekAPI, downloadSupervisorSubmissionFileAPI, rejectWeekAPI } from '../../../lib/api';
+import { History, Users } from 'lucide-react';
+import { approveWeekAPI, rejectWeekAPI } from '../../../lib/api';
 import WeeklyReportForm from './WeeklyReportForm';
 
 type ReviewPanelProps = {
   groupData: any;
   onUpdate: () => void;
 };
-
-function weekHasSubmission(week: any) {
-  if (!week) return false;
-
-  return Boolean(
-    week.submitted_at ||
-      week.submitted_file_name ||
-      (typeof week.submission_comments === 'string' && week.submission_comments.trim()) ||
-      week.submitted_by ||
-      ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'].includes((week.status || '').toUpperCase())
-  );
-}
-
-function getWeekStatusLabel(week: any) {
-  if (!weekHasSubmission(week) && (week?.status || 'PENDING').toUpperCase() === 'PENDING') {
-    return 'AWAITING_SUBMISSION';
-  }
-
-  return (week?.status || 'PENDING').toUpperCase();
-}
 
 function getInitials(name: string) {
   if (!name) return '??';
@@ -40,8 +20,6 @@ function getInitials(name: string) {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    AWAITING_SUBMISSION: { bg: 'bg-gray-200', text: 'text-gray-700', label: 'Awaiting Submission' },
-    DRAFT: { bg: 'bg-[#F8BC95]', text: 'text-[#6B4B38]', label: 'Draft' },
     PENDING: { bg: 'bg-[#C48C62]', text: 'text-white', label: 'Pending' },
     SUBMITTED: { bg: 'bg-[#845EC2]', text: 'text-white', label: 'Submitted' },
     APPROVED: { bg: 'bg-[#1E824C]', text: 'text-white', label: 'Approved' },
@@ -64,13 +42,10 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
 
   useEffect(() => {
     if (groupData?.weeks?.length > 0) {
-      const orderedWeeks = [...groupData.weeks];
-      const latestReviewableWeek = [...orderedWeeks]
-        .reverse()
-        .find((week: any) => weekHasSubmission(week) && ['SUBMITTED', 'PENDING'].includes(week.status));
-      const latestSubmittedWeek = [...orderedWeeks].reverse().find((week: any) => weekHasSubmission(week));
-
-      setSelectedWeekId(latestReviewableWeek?.id || latestSubmittedWeek?.id || groupData.weeks[0].id);
+      const reviewableWeek = groupData.weeks.find((week: any) =>
+        ['SUBMITTED', 'PENDING'].includes(week.status)
+      );
+      setSelectedWeekId(reviewableWeek?.id || groupData.weeks[0].id);
       setFeedback('');
     }
   }, [groupData]);
@@ -84,12 +59,10 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
   }
 
   const activeWeek = groupData.weeks?.find((week: any) => week.id === selectedWeekId) || null;
-  const hasSubmission = weekHasSubmission(activeWeek);
-  const displayStatus = getWeekStatusLabel(activeWeek);
-  const needsReview = activeWeek ? hasSubmission && ['PENDING', 'SUBMITTED'].includes(activeWeek.status) : false;
+  const needsReview = activeWeek ? ['PENDING', 'SUBMITTED'].includes(activeWeek.status) : false;
   const execSummary =
     activeWeek?.submission_comments ||
-    (hasSubmission ? 'No submission summary provided yet.' : 'Students have not uploaded a weekly report for this cycle yet.');
+    (needsReview ? 'No submission summary provided yet.' : 'No submission summary provided.');
 
   const handleSubmitReview = async () => {
     if (!activeWeek) return;
@@ -113,26 +86,6 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
       alert(error.message || 'Error processing review');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleDownloadSubmission = async () => {
-    if (!activeWeek?.submitted_file_name) {
-      return;
-    }
-
-    try {
-      const blob = await downloadSupervisorSubmissionFileAPI(groupData.group.id, activeWeek.id);
-      const objectUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = activeWeek.submitted_file_name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(objectUrl);
-    } catch (error: any) {
-      alert(error.message || 'Unable to download the uploaded file.');
     }
   };
 
@@ -181,7 +134,7 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
           >
             {groupData.weeks?.map((week: any) => (
               <option key={week.id} value={week.id}>
-                {week.name} [{getWeekStatusLabel(week).replace(/_/g, ' ')}]
+                {week.name} {week.status !== 'PENDING' ? `[${week.status}]` : ''}
               </option>
             ))}
           </select>
@@ -190,7 +143,7 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
 
       <div className="mb-8 flex items-center justify-between rounded-xl border border-[#EBE3D5] bg-[#FAF6F0] p-4">
         <div className="flex items-center gap-4">
-          <StatusBadge status={displayStatus} />
+          <StatusBadge status={activeWeek?.status || 'PENDING'} />
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Submission Log</p>
             <p className="mt-1 text-sm font-bold text-gray-900">
@@ -198,7 +151,7 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
                 ? `Uploaded on ${new Date(activeWeek.submitted_at).toLocaleDateString()} at ${new Date(
                     activeWeek.submitted_at
                   ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : 'Students have not uploaded a report for this week yet.'}
+                : 'No files uploaded yet.'}
             </p>
           </div>
         </div>
@@ -215,35 +168,6 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
         </div>
       </div>
 
-      {activeWeek?.submitted_file_name && (
-        <div className="mb-8">
-          <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.15em] text-gray-500">Uploaded File</h3>
-          <div className="flex items-center justify-between rounded-xl border border-[#E8DDCC] bg-[#FAF6F0] p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8DDCC] text-[#76543A]">
-                <FileText size={18} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{activeWeek.submitted_file_name}</p>
-                <p className="text-xs text-gray-500">
-                  {activeWeek.submitted_file_size
-                    ? `${(activeWeek.submitted_file_size / 1024).toFixed(1)} KB`
-                    : 'Uploaded file'}
-                </p>
-              </div>
-            </div>
-            <button
-              className="flex items-center gap-2 rounded bg-white px-4 py-2 text-xs font-bold text-[#76543A] shadow-sm transition-colors hover:bg-gray-50"
-              onClick={handleDownloadSubmission}
-              type="button"
-            >
-              <Download size={14} />
-              Download
-            </button>
-          </div>
-        </div>
-      )}
-
       <WeeklyReportForm group={groupData.group} activeWeek={activeWeek} />
 
       <div className="mb-10 mt-10 border-t border-gray-100 pt-8">
@@ -257,9 +181,7 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
           placeholder={
             needsReview
               ? 'Enter academic feedback or guidance for revisions here...'
-              : hasSubmission
-                ? '(This submission is not awaiting review)'
-                : '(Students have not uploaded this week yet)'
+              : '(Submission is not awaiting review)'
           }
           value={feedback}
           onChange={(event) => setFeedback(event.target.value)}

@@ -35,6 +35,12 @@ export interface Week {
   name: string;
   phase_title: string | null;
   status: string;
+  submission_comments?: string | null;
+  submitted_file_name?: string | null;
+  submitted_file_type?: string | null;
+  submitted_file_size?: number | null;
+  submitted_at?: string | null;
+  supervisor_feedback?: string | null;
 }
 
 export default function StudentDashboard() {
@@ -43,6 +49,11 @@ export default function StudentDashboard() {
   const [group, setGroup] = useState<Group | null>(null);
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const loadWeeks = async () => {
+    const weeksRes = await getMyGroupWeeksAPI();
+    setWeeks(weeksRes.weeks);
+  };
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -63,9 +74,7 @@ export default function StudentDashboard() {
         }
 
         setGroup(groupRes.group);
-
-        const weeksRes = await getMyGroupWeeksAPI();
-        setWeeks(weeksRes.weeks);
+        await loadWeeks();
       } catch (err) {
         console.error('Dashboard fetch error:', err);
       } finally {
@@ -114,7 +123,7 @@ export default function StudentDashboard() {
 
           {/* Main Submission Area */}
           <section className="flex-1 flex flex-col min-w-0">
-            <SubmissionArea weeks={weeks} />
+            <SubmissionArea weeks={weeks} onSubmissionSaved={loadWeeks} />
           </section>
 
         </main>

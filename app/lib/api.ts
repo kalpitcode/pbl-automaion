@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5001/api';
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -12,10 +13,17 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error(
+      'Cannot reach the backend server. Start it with `npm run server:dev` from the project root.'
+    );
+  }
 
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
@@ -31,6 +39,49 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   }
 
   return response.json();
+}
+
+async function fetchBlobWithAuth(url: string, options: RequestInit = {}) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+  const headers = {
+    ...(options.headers || {}),
+  } as Record<string, string>;
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error(
+      'Cannot reach the backend server. Start it with `npm run server:dev` from the project root.'
+    );
+  }
+
+  if (response.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+    throw new Error('Session expired. Please log in again.');
+  }
+
+  if (!response.ok) {
+    const errorMessage = await response
+      .json()
+      .then((data) => data.error || 'Request failed')
+      .catch(async () => (await response.text()) || 'Request failed');
+
+    throw new Error(errorMessage);
+  }
+
+  return response.blob();
 }
 
 export async function loginAPI(data: Record<string, unknown>) {
@@ -93,10 +144,28 @@ export async function getMyGroupWeeksAPI() {
 }
 
 // --- Submission API (Student) ---
-export async function submitWeekAPI(weekId: string, data: { comments: string; isDraft: boolean }) {
+export async function submitWeekAPI(
+  weekId: string,
+  data: {
+    comments: string;
+    isDraft: boolean;
+    file?: {
+      name: string;
+      type: string;
+      size: number;
+      contentBase64: string;
+    };
+  }
+) {
   return fetchWithAuth(`${API_BASE_URL}/submissions/${weekId}`, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export async function downloadStudentSubmissionFileAPI(weekId: string) {
+  return fetchBlobWithAuth(`${API_BASE_URL}/submissions/${weekId}/file`, {
+    method: 'GET',
   });
 }
 
@@ -139,5 +208,23 @@ export async function approveSupervisorRequestAPI(requestId: string) {
 export async function rejectSupervisorRequestAPI(requestId: string) {
   return fetchWithAuth(`${API_BASE_URL}/supervisor/requests/${requestId}/reject`, {
     method: 'PUT',
+  });
+}
+
+export async function downloadSupervisorWeekReportAPI(
+  groupId: string,
+  weekId: string,
+  data: Record<string, unknown>
+) {
+  return fetchBlobWithAuth(`${API_BASE_URL}/supervisor/groups/${groupId}/weeks/${weekId}/report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function downloadSupervisorSubmissionFileAPI(groupId: string, weekId: string) {
+  return fetchBlobWithAuth(`${API_BASE_URL}/supervisor/groups/${groupId}/weeks/${weekId}/file`, {
+    method: 'GET',
   });
 }

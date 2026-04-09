@@ -1,4 +1,5 @@
 const { prisma } = require('../models/userModel');
+const { readSubmissionMeta } = require('../utils/submissionStorage');
 
 // Helper to check if user is already in a group
 const checkUserGroup = async (userId) => {
@@ -220,9 +221,16 @@ const getMyGroupWeeks = async (req, res) => {
 
         const mergedWeeks = allWeeks.map(week => {
             const statusRecord = groupWeeks.find(gw => gw.week_id === week.id);
+            const fileMeta = readSubmissionMeta(groupId, week.id);
             return {
                 ...week,
-                status: statusRecord ? statusRecord.status : 'PENDING'
+                status: statusRecord ? statusRecord.status : 'PENDING',
+                submission_comments: statusRecord?.submission_comments ?? null,
+                submitted_file_name: fileMeta?.originalName ?? null,
+                submitted_file_type: fileMeta?.mimeType ?? null,
+                submitted_file_size: fileMeta?.size ?? null,
+                submitted_at: statusRecord?.submitted_at ?? null,
+                supervisor_feedback: statusRecord?.supervisor_feedback ?? null,
             };
         });
 

@@ -20,6 +20,12 @@ router.put('/groups/:groupId/weeks/:weekId/approve', isSupervisor, supervisorCon
 // Reject a week submission with feedback
 router.put('/groups/:groupId/weeks/:weekId/reject', isSupervisor, supervisorController.rejectWeek);
 
+// Download the student's uploaded weekly report file
+router.get('/groups/:groupId/weeks/:weekId/file', isSupervisor, supervisorController.downloadWeekSubmission);
+
+// Generate a weekly progress report PDF for the selected group/week
+router.post('/groups/:groupId/weeks/:weekId/report', isSupervisor, supervisorController.generateWeekReport);
+
 // Supervisor requests queue
 router.get('/requests', isSupervisor, supervisorController.getRequests);
 router.put('/requests/:id/approve', isSupervisor, supervisorController.approveRequest);

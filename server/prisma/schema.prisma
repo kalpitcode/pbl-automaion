@@ -65,10 +65,14 @@ model GroupWeek {
   id                   String    @id @default(uuid())
   group_id             String
   week_id              String
-  status               String    @default("PENDING")  // PENDING | APPROVED | REJECTED
+  status               String    @default("PENDING")  // PENDING | DRAFT | SUBMITTED | APPROVED | REJECTED
 
   // Student submission
   submission_comments  String?
+  submitted_file_name  String?
+  submitted_file_path  String?
+  submitted_file_type  String?
+  submitted_file_size  Int?
   submitted_at         DateTime?
   submitted_by_id      String?
   submitted_by         User?     @relation("Submissions", fields: [submitted_by_id], references: [id])
