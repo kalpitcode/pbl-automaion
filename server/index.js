@@ -8,7 +8,30 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+
+// CORS — allow Vercel frontend + localhost for dev
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
+// Add production frontend URL if set
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+      return callback(null, true);
+    }
+    return callback(null, true); // permissive for now — tighten in production
+  },
+  credentials: true,
+}));
+
 app.use(express.json({ limit: '20mb' }));
 
 // Basic rate limiter (high limit for development)
@@ -22,7 +45,7 @@ app.use(limiter);
 
 // Basic health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Auth API is working' });
+  res.status(200).json({ status: 'OK', message: 'PBL API is running' });
 });
 
 // Routes
@@ -35,6 +58,7 @@ app.use('/api/grades', require('./routes/grading.js'));
 
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+    console.log(`Server listening on ${HOST}:${PORT}`);
 });

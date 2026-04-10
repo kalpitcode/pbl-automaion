@@ -6,6 +6,7 @@
  * Password: admin
  */
 
+try { require('dotenv').config(); } catch {}
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 

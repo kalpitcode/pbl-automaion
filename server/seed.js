@@ -1,7 +1,7 @@
 /**
  * seed.js — Seeds the database with:
- *   1. Academic weeks (Week 1–10) with phase titles
- *   2. A demo group ("Group Alpha") with no supervisor or members yet
+ *   1. Academic weeks (Week 1–14) with phase titles
+ *   2. A demo group (\"Group Delta\") with no supervisor or members yet
  *
  * Run with: node seed.js
  *
@@ -9,6 +9,7 @@
  * Uses upsert logic so it can be re-run without creating duplicates.
  */
 
+try { require('dotenv').config(); } catch {}
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
