@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Download, FileText, History, Users } from 'lucide-react';
+import { Download, FileText, History, Users, ClipboardCheck } from 'lucide-react';
 import { approveWeekAPI, downloadSupervisorSubmissionFileAPI, rejectWeekAPI } from '../../../lib/api';
-import WeeklyReportForm from './WeeklyReportForm';
 
 type ReviewPanelProps = {
   groupData: any;
@@ -244,7 +243,70 @@ export default function ReviewPanel({ groupData, onUpdate }: ReviewPanelProps) {
         </div>
       )}
 
-      <WeeklyReportForm group={groupData.group} activeWeek={activeWeek} />
+      {/* Student Reports & Submissions Overview */}
+      <div className="mb-10 rounded-2xl border border-[#E8DDCC] bg-[#FCFAF7] p-6 shadow-sm">
+        <div className="mb-6 flex items-center gap-2 text-[#8C6D56]">
+          <ClipboardCheck size={16} />
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Student Reports & Submissions</span>
+        </div>
+        <h3 className="font-serif text-2xl font-bold text-gray-900 mb-2">Submission History</h3>
+        <p className="text-sm text-gray-600 mb-6">Review all weekly submissions from this group. Students generate and upload their own reports.</p>
+
+        <div className="space-y-3">
+          {groupData.weeks?.filter((w: any) => weekHasSubmission(w)).length > 0 ? (
+            groupData.weeks
+              .filter((w: any) => weekHasSubmission(w))
+              .map((week: any) => (
+                <div key={week.id} className="flex items-center justify-between rounded-xl border border-[#E8DDCC] bg-white p-4 hover:bg-[#FAF6F0] transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8DDCC] text-[#76543A]">
+                      <FileText size={16} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{week.name}{week.phase_title ? `: ${week.phase_title}` : ''}</p>
+                      <p className="text-xs text-gray-500">
+                        {week.submitted_at
+                          ? `Submitted on ${new Date(week.submitted_at).toLocaleDateString()} at ${new Date(week.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                          : 'Saved as draft'}
+                        {week.submitted_file_name ? ` · ${week.submitted_file_name}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={getWeekStatusLabel(week)} />
+                    {week.submitted_file_name && (
+                      <button
+                        className="flex items-center gap-1.5 rounded-lg bg-white border border-[#E8DDCC] px-3 py-1.5 text-xs font-bold text-[#76543A] shadow-sm transition-colors hover:bg-[#F4EBE3]"
+                        onClick={async () => {
+                          try {
+                            const blob = await downloadSupervisorSubmissionFileAPI(groupData.group.id, week.id);
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = week.submitted_file_name;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            window.URL.revokeObjectURL(url);
+                          } catch (e: any) {
+                            alert(e.message || 'Download failed');
+                          }
+                        }}
+                      >
+                        <Download size={12} />
+                        Download
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-400">No submissions yet from this group.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="mb-10 mt-10 border-t border-gray-100 pt-8">
         <h3 className="mb-2 font-serif text-2xl font-bold text-gray-900">Provide Feedback</h3>

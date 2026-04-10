@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, FileText, MessageSquare, UploadCloud } from 'lucide-react';
+import { Download, FileText, MessageSquare, UploadCloud, FileEdit } from 'lucide-react';
 import { downloadStudentSubmissionFileAPI, submitWeekAPI } from '../../lib/api';
-import type { Week } from '../../dashboard/student/page';
+import StudentReportForm from './StudentReportForm';
+import type { Week, Group } from '../../dashboard/student/page';
 
 interface SubmissionAreaProps {
   weeks: Week[];
+  group: Group | null;
   onSubmissionSaved: () => Promise<void>;
 }
 
@@ -72,7 +74,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export function SubmissionArea({ weeks, onSubmissionSaved }: SubmissionAreaProps) {
+export function SubmissionArea({ weeks, group, onSubmissionSaved }: SubmissionAreaProps) {
   const [activeWeekId, setActiveWeekId] = useState<string | null>(
     weeks.length > 0 ? weeks[0].id : null
   );
@@ -81,6 +83,7 @@ export function SubmissionArea({ weeks, onSubmissionSaved }: SubmissionAreaProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<'upload' | 'generate'>('upload');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeWeek = weeks.find(w => w.id === activeWeekId) ?? weeks[0] ?? null;
@@ -290,117 +293,154 @@ export function SubmissionArea({ weeks, onSubmissionSaved }: SubmissionAreaProps
           </div>
         )}
 
-        {/* Upload Box */}
-        <div
-          className="border-2 border-dashed border-[#DAC5AA] rounded-2xl flex flex-col items-center justify-center py-20 mb-6 bg-white/50"
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
-          <div className="w-12 h-12 bg-[#76543A] rounded-full flex items-center justify-center text-white mb-6">
-            <UploadCloud size={24} />
-          </div>
-          <h3 className="text-lg font-bold text-foreground mb-3">Upload Weekly Report</h3>
-          <p className="text-sm text-gray-500 text-center max-w-sm mb-6 leading-relaxed">
-            Drag and drop your PDF, DOC, or DOCX file here, or click to browse files from your computer.
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.doc,.docx"
-            className="hidden"
-            onChange={handleFileInputChange}
-          />
+        {/* Tab Toggle: Upload File vs Generate Report */}
+        <div className="flex gap-2 mb-8 bg-[#F4EBE3] rounded-xl p-1.5">
           <button
-            className="bg-white border text-sm font-bold text-[#76543A] border-gray-200 px-6 py-2 rounded shadow-sm hover:bg-gray-50 transition-colors"
-            onClick={openFilePicker}
-            type="button"
-          >
-            Select Files
-          </button>
-        </div>
-
-        {(selectedFile || currentUploadedFile) && (
-          <div className="mb-10 rounded-xl border border-[#E8DDCC] bg-[#FAF6F0] p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8DDCC] text-[#76543A]">
-                  <FileText size={18} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">
-                    {selectedFile?.name || currentUploadedFile?.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {selectedFile
-                      ? `Selected now - ${formatFileSize(selectedFile.size)}`
-                      : `Uploaded${activeWeek?.submitted_at ? ` on ${new Date(activeWeek.submitted_at).toLocaleDateString()}` : ''} - ${formatFileSize(currentUploadedFile?.size)}`}
-                  </p>
-                </div>
-              </div>
-              {currentUploadedFile && !selectedFile && (
-                <button
-                  className="flex items-center gap-2 rounded bg-white px-4 py-2 text-xs font-bold text-[#76543A] shadow-sm transition-colors hover:bg-gray-50"
-                  onClick={handleDownloadCurrentFile}
-                  type="button"
-                >
-                  <Download size={14} />
-                  Download
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Comments Area */}
-        <div className="mb-10">
-          <div className="flex items-center space-x-3 text-foreground font-bold text-sm mb-4">
-            <MessageSquare size={16} />
-            <span>Submission Comments</span>
-          </div>
-          <textarea
-            className="w-full bg-[#EFEBE4] border-0 rounded-lg p-5 text-sm text-gray-700 min-h-[140px] focus:ring-1 focus:ring-primary focus:outline-none resize-none placeholder-gray-500 font-medium"
-            placeholder="Add notes for your supervisor regarding this week's progress or specific blockers..."
-            value={comments}
-            onChange={(event) => setComments(event.target.value)}
-          ></textarea>
-        </div>
-
-        {activeWeek?.supervisor_feedback && (
-          <div className="mb-10 rounded-xl border border-red-100 bg-red-50 p-5">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.15em] text-red-700">Supervisor Feedback</p>
-            <p className="text-sm leading-relaxed text-red-900">{activeWeek.supervisor_feedback}</p>
-          </div>
-        )}
-
-        {(statusMessage || errorMessage) && (
-          <div
-            className={`mb-6 rounded-lg px-4 py-3 text-sm font-medium ${
-              errorMessage ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+            onClick={() => setActiveTab('upload')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${
+              activeTab === 'upload'
+                ? 'bg-white text-[#784E35] shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {errorMessage || statusMessage}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-4">
-          <button
-            className="bg-[#F8BC95] hover:bg-[#E8A57A] text-[#815E41] font-bold py-3.5 px-8 rounded shadow-sm text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => handleSubmit(true)}
-            type="button"
-            disabled={isSubmitting || !activeWeek}
-          >
-            Save Draft
+            <UploadCloud size={16} />
+            Upload File
           </button>
           <button
-            className="bg-[#6B4B38] hover:bg-[#5C4030] text-white font-bold py-3.5 px-8 rounded shadow-sm text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => handleSubmit(false)}
-            type="button"
-            disabled={isSubmitting || !activeWeek}
+            onClick={() => setActiveTab('generate')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${
+              activeTab === 'generate'
+                ? 'bg-white text-[#784E35] shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            {isSubmitting ? 'Saving...' : 'Submit Report'}
+            <FileEdit size={16} />
+            Generate Report
           </button>
         </div>
+
+        {activeTab === 'upload' ? (
+          <>
+            {/* Upload Box */}
+            <div
+              className="border-2 border-dashed border-[#DAC5AA] rounded-2xl flex flex-col items-center justify-center py-20 mb-6 bg-white/50"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+            >
+              <div className="w-12 h-12 bg-[#76543A] rounded-full flex items-center justify-center text-white mb-6">
+                <UploadCloud size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-3">Upload Weekly Report</h3>
+              <p className="text-sm text-gray-500 text-center max-w-sm mb-6 leading-relaxed">
+                Drag and drop your PDF, DOC, or DOCX file here, or click to browse files from your computer.
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
+              <button
+                className="bg-white border text-sm font-bold text-[#76543A] border-gray-200 px-6 py-2 rounded shadow-sm hover:bg-gray-50 transition-colors"
+                onClick={openFilePicker}
+                type="button"
+              >
+                Select Files
+              </button>
+            </div>
+
+            {(selectedFile || currentUploadedFile) && (
+              <div className="mb-10 rounded-xl border border-[#E8DDCC] bg-[#FAF6F0] p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8DDCC] text-[#76543A]">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">
+                        {selectedFile?.name || currentUploadedFile?.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {selectedFile
+                          ? `Selected now - ${formatFileSize(selectedFile.size)}`
+                          : `Uploaded${activeWeek?.submitted_at ? ` on ${new Date(activeWeek.submitted_at).toLocaleDateString()}` : ''} - ${formatFileSize(currentUploadedFile?.size)}`}
+                      </p>
+                    </div>
+                  </div>
+                  {currentUploadedFile && !selectedFile && (
+                    <button
+                      className="flex items-center gap-2 rounded bg-white px-4 py-2 text-xs font-bold text-[#76543A] shadow-sm transition-colors hover:bg-gray-50"
+                      onClick={handleDownloadCurrentFile}
+                      type="button"
+                    >
+                      <Download size={14} />
+                      Download
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Comments Area */}
+            <div className="mb-10">
+              <div className="flex items-center space-x-3 text-foreground font-bold text-sm mb-4">
+                <MessageSquare size={16} />
+                <span>Submission Comments</span>
+              </div>
+              <textarea
+                className="w-full bg-[#EFEBE4] border-0 rounded-lg p-5 text-sm text-gray-700 min-h-[140px] focus:ring-1 focus:ring-primary focus:outline-none resize-none placeholder-gray-500 font-medium"
+                placeholder="Add notes for your supervisor regarding this week's progress or specific blockers..."
+                value={comments}
+                onChange={(event) => setComments(event.target.value)}
+              ></textarea>
+            </div>
+
+            {activeWeek?.supervisor_feedback && (
+              <div className="mb-10 rounded-xl border border-red-100 bg-red-50 p-5">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.15em] text-red-700">Supervisor Feedback</p>
+                <p className="text-sm leading-relaxed text-red-900">{activeWeek.supervisor_feedback}</p>
+              </div>
+            )}
+
+            {(statusMessage || errorMessage) && (
+              <div
+                className={`mb-6 rounded-lg px-4 py-3 text-sm font-medium ${
+                  errorMessage ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                }`}
+              >
+                {errorMessage || statusMessage}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-4">
+              <button
+                className="bg-[#F8BC95] hover:bg-[#E8A57A] text-[#815E41] font-bold py-3.5 px-8 rounded shadow-sm text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => handleSubmit(true)}
+                type="button"
+                disabled={isSubmitting || !activeWeek}
+              >
+                Save Draft
+              </button>
+              <button
+                className="bg-[#6B4B38] hover:bg-[#5C4030] text-white font-bold py-3.5 px-8 rounded shadow-sm text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => handleSubmit(false)}
+                type="button"
+                disabled={isSubmitting || !activeWeek}
+              >
+                {isSubmitting ? 'Saving...' : 'Submit Report'}
+              </button>
+            </div>
+          </>
+        ) : (
+          /* Generate Report Tab */
+          group ? (
+            <StudentReportForm group={group} activeWeek={activeWeek} />
+          ) : (
+            <p className="text-sm text-gray-400 italic">Group data is required to generate a report.</p>
+          )
+        )}
       </div>
 
       {/* Past Reports Row */}

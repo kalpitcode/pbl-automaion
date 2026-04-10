@@ -258,3 +258,14 @@ export async function downloadSupervisorSubmissionFileAPI(groupId: string, weekI
     method: 'GET',
   });
 }
+
+export async function downloadStudentWeekReportAPI(
+  weekId: string,
+  data: Record<string, unknown>
+) {
+  return fetchBlobWithAuth(`${API_BASE_URL}/submissions/${weekId}/report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}

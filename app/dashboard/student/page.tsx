@@ -149,7 +149,7 @@ export default function StudentDashboard() {
 
           {/* Main Submission Area */}
           <section className="flex-1 flex flex-col min-w-0">
-            <SubmissionArea weeks={weeks} onSubmissionSaved={loadWeeks} />
+            <SubmissionArea weeks={weeks} group={group} onSubmissionSaved={loadWeeks} />
           </section>
 
         </main>

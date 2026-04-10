@@ -139,4 +139,77 @@ const downloadWeekFile = async (req, res) => {
     }
 };
 
-module.exports = { submitWeek, downloadWeekFile };
+// ─── POST /api/submissions/:weekId/report ────────────────────────────────────
+// Student generates a formal weekly progress report PDF
+const generateStudentReport = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { weekId } = req.params;
+
+        const membership = await prisma.groupMember.findUnique({
+            where: { user_id: userId },
+            include: { group: { include: { supervisor: { select: { name: true, email: true } }, members: { include: { user: { select: { name: true, email: true } } } } } } },
+        });
+
+        if (!membership?.group_id) {
+            return res.status(400).json({ error: 'You are not assigned to a group.' });
+        }
+
+        const week = await prisma.week.findUnique({ where: { id: weekId } });
+        if (!week) return res.status(404).json({ error: 'Week not found.' });
+
+        const submission = await prisma.groupWeek.findUnique({
+            where: { group_id_week_id: { group_id: membership.group_id, week_id: weekId } },
+        });
+
+        const group = membership.group;
+
+        function sanitizeVal(value, fallback = '') {
+            return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+        }
+
+        const providedStudents = Array.isArray(req.body?.students)
+            ? req.body.students.filter(s => s && s.name)
+            : [];
+
+        const fallbackStudents = group.members.map(m => ({
+            name: m.user.name,
+            reg: '',
+            mobile: '',
+            email: m.user.email,
+        }));
+
+        const submittedDate = submission?.submitted_at
+            ? new Date(submission.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            : 'Date not available';
+
+        const reportData = {
+            courseCode: sanitizeVal(req.body?.courseCode, 'AIM2270'),
+            semesterSection: sanitizeVal(req.body?.semesterSection, 'IV / B'),
+            facultySupervisor: sanitizeVal(req.body?.facultySupervisor, group.supervisor?.name || 'Supervisor'),
+            weekInfo: sanitizeVal(req.body?.weekInfo, `${week.name} - ${submittedDate}`),
+            projectTitle: sanitizeVal(req.body?.projectTitle, group.topic || group.name),
+            programmingLanguage: sanitizeVal(req.body?.programmingLanguage, 'Not specified'),
+            projectStatus: sanitizeVal(req.body?.projectStatus, submission?.status || 'PENDING'),
+            weeklySummary: sanitizeVal(req.body?.weeklySummary, submission?.submission_comments || 'No weekly summary provided.'),
+            individualContribution: sanitizeVal(req.body?.individualContribution, 'Contribution details not provided.'),
+            students: providedStudents.length > 0 ? providedStudents : fallbackStudents,
+        };
+
+        const { generateWeeklyReportPdf } = require('../utils/reportPdf');
+        const pdfBuffer = await generateWeeklyReportPdf(reportData);
+        const fileName = `${group.name}_${week.name}_Weekly_Report.pdf`.replace(/\s+/g, '_');
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'Content-Length': pdfBuffer.length.toString(),
+        });
+        res.send(pdfBuffer);
+    } catch (err) {
+        console.error('generateStudentReport error:', err);
+        res.status(err.status || 500).json({ error: err.message || 'Failed to generate report.' });
+    }
+};
+
+module.exports = { submitWeek, downloadWeekFile, generateStudentReport };
