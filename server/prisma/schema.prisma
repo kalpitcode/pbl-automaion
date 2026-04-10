@@ -22,6 +22,8 @@ model User {
   // As a Supervisor
   supervised_groups Group[] @relation("GroupSupervisor")
   supervisor_requests SupervisorRequest[]
+  student_grades_as_student StudentGrades[] @relation("GradeStudent")
+  student_grades_as_supervisor StudentGrades[] @relation("GradeSupervisor")
 
   // Submissions authored by this user
   submissions   GroupWeek[] @relation("Submissions")
@@ -42,6 +44,7 @@ model Group {
   members       GroupMember[]
   week_statuses GroupWeek[]
   supervisor_request SupervisorRequest?
+  student_grades StudentGrades[]
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
@@ -116,3 +119,24 @@ model SupervisorRequest {
 
   @@map("supervisor_requests")
 }
+
+model StudentGrades {
+  id             String   @id @default(uuid())
+  student_id     String
+  supervisor_id  String
+  group_id       String
+  cws            Int?     // Continuous Work 0-30
+  mte            Int?     // Mid Term Exam 0-30  
+  ete            Int?     // End Term Exam 0-40
+  total          Int?     // Computed: cws + mte + ete (nullable)
+  is_published   Boolean  @default(false)
+  updated_at     DateTime @updatedAt
+
+  student        User     @relation("GradeStudent", fields: [student_id], references: [id])
+  supervisor     User     @relation("GradeSupervisor", fields: [supervisor_id], references: [id])
+  group          Group    @relation(fields: [group_id], references: [id])
+
+  @@unique([student_id, supervisor_id, group_id])
+  @@map("student_grades")
+}
+

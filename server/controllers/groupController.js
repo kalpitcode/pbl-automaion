@@ -1,4 +1,4 @@
-const { prisma } = require('../models/userModel');
+const { prisma } = require('../prisma');
 const { readSubmissionMeta } = require('../utils/submissionStorage');
 
 // Helper to check if user is already in a group

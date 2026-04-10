@@ -41,3 +41,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# server
+server/node_modules
+server/.env
+server/*.db
+server/*.db-journal
+server/*.log
+server/*.pdf
+server/scripts/create-grades-table.js

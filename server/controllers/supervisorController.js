@@ -1,4 +1,4 @@
-const { prisma } = require('../models/userModel');
+const { prisma } = require('../prisma');
 const { generateWeeklyReportPdf } = require('../utils/reportPdf');
 const { readSubmissionMeta } = require('../utils/submissionStorage');
 

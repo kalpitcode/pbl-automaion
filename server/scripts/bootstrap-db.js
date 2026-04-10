@@ -69,6 +69,22 @@ const statements = [
     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
     FOREIGN KEY (supervisor_id) REFERENCES users(id) ON DELETE CASCADE
   );`,
+  `CREATE TABLE IF NOT EXISTS student_grades (
+    id TEXT NOT NULL PRIMARY KEY,
+    student_id TEXT NOT NULL,
+    supervisor_id TEXT NOT NULL,
+    group_id TEXT NOT NULL,
+    cws INTEGER,
+    mte INTEGER,
+    ete INTEGER,
+    total INTEGER,
+    is_published BOOLEAN NOT NULL DEFAULT 0,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id),
+    FOREIGN KEY (supervisor_id) REFERENCES users(id),
+    FOREIGN KEY (group_id) REFERENCES groups(id),
+    UNIQUE (student_id, supervisor_id, group_id)
+  );`,
   'PRAGMA foreign_keys = ON;',
 ];
 

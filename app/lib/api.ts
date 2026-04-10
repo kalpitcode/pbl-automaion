@@ -174,6 +174,36 @@ export async function getSupervisorGroupsAPI() {
   return fetchWithAuth(`${API_BASE_URL}/supervisor/groups`, { method: 'GET' });
 }
 
+export async function getGradesAPI() {
+  return fetchWithAuth(`${API_BASE_URL}/grades`, { method: 'GET' });
+}
+
+export async function createGradeAPI(data: { studentId: string; groupId: string; cws: number; mte: number; ete: number }) {
+  return fetchWithAuth(`${API_BASE_URL}/grades`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateGradeAPI(gradeId: string, data: Record<string, unknown>) {
+  return fetchWithAuth(`${API_BASE_URL}/grades/${gradeId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+
+export async function publishGradesAPI() {
+  return fetchWithAuth(`${API_BASE_URL}/grades/publish`, {
+    method: 'POST',
+  });
+}
+
+export async function getMyGradesAPI() {
+  return fetchWithAuth(`${API_BASE_URL}/grades/me`, { method: 'GET' });
+}
+
+
 export async function getSupervisorGroupDetailAPI(groupId: string) {
   return fetchWithAuth(`${API_BASE_URL}/supervisor/groups/${groupId}`, { method: 'GET' });
 }

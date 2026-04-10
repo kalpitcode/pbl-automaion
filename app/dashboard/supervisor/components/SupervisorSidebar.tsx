@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Clock, Archive, HelpCircle, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, Users, Clock, Archive, HelpCircle, GraduationCap, Award } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SupervisorSidebar() {
@@ -29,6 +29,10 @@ export default function SupervisorSidebar() {
           <Link href="/dashboard/supervisor/groups" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-[#E8DDCC] rounded-xl transition-colors text-sm font-medium">
             <Users size={18} />
             <span>Assigned Groups</span>
+          </Link>
+          <Link href="/dashboard/supervisor/grades" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-[#E8DDCC] rounded-xl transition-colors text-sm font-medium">
+            <Award size={18} />
+            <span>Grade Students</span>
           </Link>
           <Link href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-[#E8DDCC] rounded-xl transition-colors text-sm font-medium">
             <Clock size={18} />

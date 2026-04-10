@@ -31,6 +31,8 @@ app.use('/api/groups', require('./routes/groups.js'));
 app.use('/api/weeks', require('./routes/weeks.js'));
 app.use('/api/supervisor', require('./routes/supervisor.js'));
 app.use('/api/submissions', require('./routes/submissions.js'));
+app.use('/api/grades', require('./routes/grading.js'));
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
