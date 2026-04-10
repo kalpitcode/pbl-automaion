@@ -2,14 +2,15 @@
 import React, { useEffect, useState } from 'react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import Link from 'next/link';
-import { getMeAPI } from '../../lib/api';
+import { getMeAPI, getSupervisorGroupsAPI } from '../../lib/api';
 import SupervisorSidebar from './components/SupervisorSidebar';
-import { TopNavbar } from '../../components/dashboard/TopNavbar';
-import { Users, Award } from 'lucide-react';
+import SupervisorNavbar from './components/SupervisorNavbar';
+import { Users, Award, ArrowRight, Sparkles, Star, ClipboardList, ImageOff } from 'lucide-react';
 
 
 export default function SupervisorDashboard() {
   const [user, setUser] = useState<any>(null);
+  const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,6 +18,12 @@ export default function SupervisorDashboard() {
       try {
         const userRes = await getMeAPI();
         setUser(userRes.user);
+        try {
+          const groupsRes = await getSupervisorGroupsAPI();
+          setGroups(groupsRes.groups || []);
+        } catch {
+          setGroups([]);
+        }
       } catch (err) {
         console.error('Dashboard load error:', err);
       } finally {
@@ -29,8 +36,8 @@ export default function SupervisorDashboard() {
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={['SUPERVISOR']}>
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <p className="text-gray-400">Loading dashboard...</p>
+        <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center">
+          <p className="text-gray-400 animate-pulse">Loading dashboard...</p>
         </div>
       </ProtectedRoute>
     );
@@ -46,69 +53,131 @@ export default function SupervisorDashboard() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
           
-          <TopNavbar user={user} />
+          <SupervisorNavbar user={user} />
 
-          <div className="flex-1 overflow-auto p-8 bg-gray-50">
+          <div className="flex-1 overflow-auto p-8 bg-[#FAF6F0]">
+            
+            {/* Page Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">Supervisor Dashboard</h1>
-              <p className="text-xl text-gray-600 mt-2">Manage groups, submissions, and grading</p>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Supervisor Dashboard</h1>
+              <p className="text-gray-500 mt-2">Manage your project cohorts, review student progress, and finalize grades.</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <div className="bg-white rounded-xl border p-8 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Get Started</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl font-bold text-blue-600">1</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">Review Requests</h4>
-                      <p className="text-sm text-gray-600">Click "Supervisor Requests" to approve groups</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl font-bold text-emerald-600">2</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">Grade Students</h4>
-                      <p className="text-sm text-gray-600">Use "Grade Students" to enter CWS/MTE/ETE marks</p>
-                    </div>
+            {/* Cards Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              
+              {/* Get Started Card */}
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E8DDCC] p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-bold text-gray-900">Get Started</h3>
+                  <div className="w-10 h-10 bg-[#FAF6F0] rounded-xl flex items-center justify-center">
+                    <Sparkles size={20} className="text-[#A06B40]" />
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Review Requests */}
+                  <div className="bg-[#FAF6F0] rounded-xl p-6 border border-[#E8DDCC]/50">
+                    <h4 className="font-bold text-gray-900 mb-2 text-[15px]">Review Requests</h4>
+                    <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                      Check the pending approvals for project proposals and milestone completions.
+                    </p>
+                    <Link 
+                      href="/dashboard/supervisor/requests" 
+                      className="text-[#784E35] font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all"
+                    >
+                      Continue <ArrowRight size={14} />
+                    </Link>
+                  </div>
+
+                  {/* Grade Students */}
+                  <div className="bg-[#FAF6F0] rounded-xl p-6 border border-[#E8DDCC]/50">
+                    <h4 className="font-bold text-gray-900 mb-2 text-[15px]">Grade Students</h4>
+                    <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                      Access submitted assignments and provide detailed qualitative feedback.
+                    </p>
+                    <Link 
+                      href="/dashboard/supervisor/grades" 
+                      className="text-[#784E35] font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all"
+                    >
+                      Open Queue <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions Card */}
+              <div className="bg-gradient-to-br from-[#F5D5B8] to-[#FADEC9] rounded-2xl p-6 border border-[#E8C9A8] shadow-sm flex flex-col">
+                <h3 className="text-lg font-bold text-gray-900 mb-5">Quick Actions</h3>
+                
+                <div className="space-y-3 flex-1">
+                  <Link 
+                    href="/dashboard/supervisor/requests" 
+                    className="flex items-center gap-3 bg-[#3D2B1F] hover:bg-[#2A1E15] text-white px-5 py-3.5 rounded-xl font-semibold text-sm transition-colors shadow-sm"
+                  >
+                    <ClipboardList size={16} />
+                    Requests
+                  </Link>
+                  <Link 
+                    href="/dashboard/supervisor/grades" 
+                    className="flex items-center gap-3 bg-white hover:bg-gray-50 text-gray-900 px-5 py-3.5 rounded-xl font-semibold text-sm transition-colors shadow-sm border border-[#E8DDCC]"
+                  >
+                    <Star size={16} className="text-[#A06B40]" />
+                    Grade Now
+                  </Link>
+                </div>
+
+                {/* Weekly Insight */}
+                <div className="mt-5 bg-white/60 rounded-xl p-4 border border-[#E8C9A8]/50">
+                  <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold mb-1">Weekly Insight</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {groups.length > 0
+                      ? `${groups.length} student group${groups.length !== 1 ? 's' : ''} ${groups.length !== 1 ? 'are' : 'is'} waiting for milestone feedback.`
+                      : 'No groups assigned yet. Check your approval queue.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Your Groups Section */}
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Your Groups</h3>
+                <Link href="/dashboard/supervisor/groups" className="text-sm text-gray-500 hover:text-[#784E35] font-medium transition-colors">
+                  Manage All Cohorts
+                </Link>
               </div>
               
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border rounded-xl p-8 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <Link href="/dashboard/supervisor/requests" className="block p-4 bg-white hover:bg-gray-50 rounded-lg border transition-all text-center">
-                    <Users size={20} className="mx-auto mb-2 text-gray-600" />
-                    <span className="font-semibold text-sm">Requests</span>
-                  </Link>
-                  <Link href="/dashboard/supervisor/grades" className="block p-4 bg-white hover:bg-gray-50 rounded-xl border transition-all text-center">
-                    <Award size={20} className="mx-auto mb-2 text-blue-600" />
-                    <span className="font-semibold text-sm text-blue-600">Grade Now</span>
-                  </Link>
+              {groups.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groups.map((group: any) => (
+                    <Link 
+                      key={group.id} 
+                      href={`/dashboard/supervisor/groups`}
+                      className="bg-white rounded-2xl border border-[#E8DDCC] p-6 shadow-sm hover:shadow-md hover:border-[#784E35]/30 transition-all group"
+                    >
+                      <h4 className="font-bold text-gray-900 mb-1 group-hover:text-[#784E35] transition-colors">{group.name}</h4>
+                      <p className="text-xs text-gray-500 mb-3 line-clamp-1">{group.topic || 'No topic set'}</p>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <Users size={12} />
+                        <span>{group.members?.length || 0} members</span>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="bg-[#F4EBE3]/50 rounded-2xl border border-[#E8DDCC] p-12 text-center">
+                  <div className="w-16 h-16 bg-[#E8DDCC]/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <ImageOff size={28} className="text-gray-400" />
+                  </div>
+                  <h4 className="text-lg font-bold text-gray-900 mb-2">No groups yet</h4>
+                  <p className="text-sm text-gray-500 max-w-md mx-auto">
+                    You haven&apos;t been assigned to any project cohorts for this semester. New groups will appear here once students request your supervision.
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="bg-white rounded-xl border p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <Users size={24} className="text-gray-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">Your Groups</h3>
-              </div>
-              <p className="text-gray-500 mb-6">Navigate to "My Groups" or "Grade Students" to manage your assigned groups.</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-6 bg-gray-50 rounded-lg border-dashed border-2 border-gray-200 text-center h-24 flex flex-col items-center justify-center">
-                  <Users size={32} className="text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-500">No groups yet</span>
-                </div>
-              </div>
-            </div>
           </div>
           
         </div>
@@ -116,4 +185,3 @@ export default function SupervisorDashboard() {
     </ProtectedRoute>
   );
 }
-
